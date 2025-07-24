@@ -1,0 +1,389 @@
+% Based on the Lucid Beamer scheme from https://github.com/harisont/lucid
+
+\usepackage{tikz}
+\usetikzlibrary{fadings}
+\usetikzlibrary{positioning} 
+\usepackage{xcolor}
+\usepackage{ragged2e}
+\usetikzlibrary{calc}
+
+\usepackage{helvet}
+
+% ISO format date
+\usepackage[ddmmyyyy]{datetime}
+\renewcommand{\dateseparator}{/}
+
+% -------- LOGO SETUP --------
+
+\newif\iflogoset
+\logosetfalse
+
+\newif\iftitleextralogoset
+\titleextralogosetfalse
+
+\newif\iftitleextralogotwoset
+\titleextralogotwosetfalse
+
+\newif\iftitlelogoleftset
+\titlelogoleftsetfalse
+
+\newcommand{\setLogo}[1]{%
+    \def\insertlogo{#1}%
+    \logosettrue
+}
+
+\newcommand{\setTitleExtraLogo}[1]{%
+  \def\inserttitleextralogo{#1}%
+  \titleextralogosettrue
+}
+
+\newcommand{\setTitleExtraLogoTwo}[1]{%
+  \def\inserttitleextralogotwo{#1}%
+  \titleextralogotwosettrue
+}
+
+\newcommand{\setTitleLogoLeft}[1]{%
+  \def\inserttitlelogoleft{#1}%
+  \titlelogoleftsettrue
+}
+
+% -------- SUPERVISOR --------
+
+\newif\ifsupervisordefined
+\supervisordefinedfalse
+
+\newcommand{\supervisorspretext}{} % Define an empty command for the pre-text
+
+\newcommand{\supervisors}[2][]{%
+    \def\insertsupervisors{#2}%
+    \if\relax#1\relax % Check if optional argument is empty
+        \def\supervisorspretext{}%
+    \else
+        \def\supervisorspretext{#1\ }% % Add a space after the pre-text
+    \fi
+    \supervisordefinedtrue
+}
+
+% -------- SHORT NAME --------
+
+\newif\ifshortnamedefined
+\shortnamedefinedfalse
+
+\newcommand{\shortname}[1]{
+	\def\insertshortname{#1}%
+	\shortnamedefinedtrue
+}
+
+% -------- TITLE BAR HEIGHT --------
+
+\newlength{\titlebarheight}
+\setlength{\titlebarheight}{1cm}
+
+% -------- COLOR SCHEME --------
+
+\definecolor{PrimaryColor}{RGB}{22,59,33} % primary color (blue)
+\definecolor{SecondaryColor}{RGB}{77,186,106} % bulleted lists
+\definecolor{BackgroundColor}{RGB}{255,255,255} % background & titles (white)
+\definecolor{TextColor}{RGB}{0,0,0} % text (black)
+\definecolor{ProgBarBGColor}{RGB}{230,255,230} % progress bar background (grey)
+\definecolor{AlertColor}{RGB}{255, 128, 0}
+\definecolor{ExampleColor}{RGB}{142,63,224}
+
+\definecolor{ProgBarOneColor}{RGB}{22,192,69}
+\definecolor{ProgBarTwoColor}{RGB}{2,174,168}
+
+\newcommand{\setColourScheme}[3]{
+  \definecolor{PrimaryColor}{RGB}{#1,#2,#3}
+  \definecolor{SecondaryColor}{RGB}{#1, #2, #3}
+  \definecolor{AlertColor}{RGB}{#1, #2, #3}
+  \definecolor{ExampleColor}{RGB}{#1, #2, #3}
+}
+
+% set colours
+\setbeamercolor{normal text}{fg=TextColor}\usebeamercolor*{normal text}
+\setbeamercolor{alerted text}{fg=PrimaryColor}
+\setbeamercolor{section in toc}{fg=PrimaryColor}
+\setbeamercolor{structure}{fg=SecondaryColor}
+% \hypersetup{colorlinks,linkcolor=SecondaryColor,urlcolor=SecondaryColor}
+% \hypersetup{hidelinks}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=SecondaryColor,
+    filecolor=SecondaryColor,      
+    urlcolor=SecondaryColor,
+    citecolor=SecondaryColor
+    }
+
+% set fonts
+\setbeamerfont{itemize/enumerate body}{size=\normalsize}
+\setbeamerfont{itemize/enumerate subbody}{size=\normalsize}
+\setbeamerfont{itemize/enumerate subsubbody}{size=\small}
+
+%% make pixelated bullets
+\setbeamertemplate{itemize item}[square]
+\setbeamertemplate{itemize subitem}[square]
+\setbeamertemplate{itemize subsubitem}[square]
+
+% disable navigation
+\setbeamertemplate{navigation symbols}{}
+
+% disable the damn default logo!
+\setbeamertemplate{sidebar right}{}
+
+% custom draw the title page above
+\setbeamertemplate{title page}{}
+
+% again, manually draw the title above
+\setbeamertemplate{frametitle}{}
+
+
+% add some space below the footnotes so they don't end up on the progress bar
+\setbeamertemplate{footnote}{ 
+	\parindent 0em
+	\noindent 
+	\raggedright 
+	\hbox to 0.8em{\hfil\insertfootnotemark}
+	\insertfootnotetext
+	\par
+	\vspace{2em}
+}
+
+% add the same vspace both before and after quotes 
+\setbeamertemplate{quote begin}{\vspace{0.5em}}
+\setbeamertemplate{quote end}{\vspace{0.5em}}
+
+% progress bar counters
+\newcounter{showProgressBar}
+\setcounter{showProgressBar}{1}
+\newcounter{showSlideNumbers}
+\setcounter{showSlideNumbers}{1}
+\newcounter{showSlideTotal}
+\setcounter{showSlideTotal}{1}
+
+% use \makeatletter for our progress bar definitions
+% progress bar idea from http://tex.stackexchange.com/a/59749/44221
+% slightly adapted for visual purposes here
+\makeatletter
+\newcount\progressbar@tmpcounta% auxiliary counter
+\newcount\progressbar@tmpcountb% auxiliary counter
+\newdimen\progressbar@pbwidth %progressbar width
+\newdimen\progressbar@tmpdim % auxiliary dimension
+
+\newdimen\slidewidth % auxiliary dimension
+\newdimen\slideheight % auxiliary dimension
+
+% make the progress bar go across the screen
+\progressbar@pbwidth=\the\paperwidth
+\slidewidth=\the\paperwidth
+\slideheight=\the\paperheight
+
+% draw everything with tikz
+\setbeamertemplate{background}{ % all slides
+	% progress bar stuff
+	\progressbar@tmpcounta=\insertframenumber
+	\progressbar@tmpcountb=\inserttotalframenumber
+	\progressbar@tmpdim=\progressbar@pbwidth
+	\divide\progressbar@tmpdim by 100
+	\multiply\progressbar@tmpdim by \progressbar@tmpcounta
+	\divide\progressbar@tmpdim by \progressbar@tmpcountb
+	\multiply\progressbar@tmpdim by 100
+	
+	\begin{tikzpicture}
+		% set up the entire slide as the canvas
+		\useasboundingbox (0,0) rectangle(\the\paperwidth,\the\paperheight);
+
+		% background
+		\fill[color=BackgroundColor] (0,0) rectangle(\the\paperwidth,\the\paperheight);
+
+            \ifnum\thepage=1\relax % only title slides
+            
+                \iftitleextralogoset
+	                % primary color rectangle
+	                \fill[color=PrimaryColor] (0, 0.6\slideheight) rectangle(\slidewidth,\slideheight);
+	                
+	                % soft color rectangle
+	                \fill[color=PrimaryColor!60!BackgroundColor] (0, 0.85\slideheight) rectangle(\slidewidth,\slideheight);
+	            \else
+	            	\fill[color=PrimaryColor] (0, 0.6\slideheight) rectangle(\slidewidth,\slideheight);
+	            \fi
+                
+			% title graphic left
+                \iftitlelogoleftset
+                    \node[anchor=north west, inner sep=0] at (0.5cm,\slideheight-7cm) {
+					\includegraphics[height=1.8cm, width=0.5\slideheight, keepaspectratio]{\inserttitlelogoleft}
+                    };
+                \fi
+
+                % title additional logos
+                \iftitleextralogoset
+                % right logo
+	                \node[anchor=north east, inner sep=0] (logoRight)
+	                at (\slidewidth-0.5cm, \slideheight-0.3cm)
+	                {\includegraphics[height=0.8cm]{\inserttitleextralogo}};
+	                \iftitleextralogotwoset
+	                % put the second logo a bit to the left of the first
+		                \node[inner sep=0, anchor=north east, left=0.5cm of logoRight]
+		                (extralogotwo)
+		                {\includegraphics[height=0.8cm]{\inserttitleextralogotwo}};
+	                \fi
+                \fi
+                
+                % text (title, subtitle, author, date)
+                \node[anchor=south west,text width=\slidewidth-1cm,align=left] at (0.5cm,0.61\slideheight) {\color{BackgroundColor}\Huge\textbf{\inserttitle}};
+                
+                
+                \node[anchor=north west,text width=\slidewidth-1cm,align=left] at (0.5cm,0.6\slideheight) {\color{PrimaryColor}\Large\textbf{\insertsubtitle}};
+
+                \ifsupervisordefined
+                    \node[anchor=west,text width=\slidewidth-1cm,align=left] at (0.5cm,3.5cm) {\color{PrimaryColor}\large\textbf{\insertauthor}};
+                
+                    % Node for supervisors, using a named coordinate to help with positioning the institute
+                    \node[anchor=west,text width=\slidewidth-1cm,align=left] (supervisors_node) at (0.5cm,3cm) {\color{PrimaryColor}\raggedright\supervisorspretext\insertsupervisors\par%
+                    };
+                
+                    % Institution positioned below the supervisors node, with a vertical offset
+                    % \node[anchor=north west,text width=\slidewidth-1cm,align=left] at (supervisors_node.south west) [yshift=-0.25cm] {\color{PrimaryColor}\large\insertinstitute}; % Added yshift
+                \else
+                    \node[anchor=west,text width=\slidewidth-1cm,align=left] at (0.5cm,3.5cm) {\color{PrimaryColor}\large\textbf{\insertauthor}};
+                    % \node[anchor=west,text width=\slidewidth-1cm,align=left] at (0.5cm,1.25cm) {\color{PrimaryColor}\large\insertinstitute};
+                \fi
+
+                \node[anchor=south west] at (0cm,0cm) {\color{PrimaryColor}\insertinstitute};
+               
+                \node[anchor=south east] at(\slidewidth,0cm) {\color{PrimaryColor}\insertdate};
+                
+		\else % other slides
+			% title bar
+                \fill[color=PrimaryColor] (0, \slideheight-\titlebarheight) rectangle(\slidewidth,\slideheight);
+
+			% slide title
+			\node[anchor=north,text width=\slidewidth-0.5cm,inner xsep=0.5cm,inner ysep=0.25cm] at (0.5\slidewidth,\slideheight) {\color{BackgroundColor}\Large\textbf{\insertframetitle}};
+
+                % small logo in corner
+                \iflogoset
+                    \node[anchor=north east, inner sep=0] at (\slidewidth-0.2cm, \slideheight-0.1cm) {
+                        \includegraphics[height=0.8cm, width=0.8cm, keepaspectratio]{\insertlogo}
+                    };
+                \fi
+
+                
+			
+			% show progress bar
+			\ifnum \value{showProgressBar}>0\relax%
+				% progress bar icon in the middle of the screen
+				\draw[fill=ProgBarBGColor,draw=none] (0cm,0cm) rectangle(\slidewidth,0.10cm);
+				\draw[
+				left color=ProgBarOneColor,
+				right color=ProgBarTwoColor,
+				draw=none
+				] (0,0) rectangle (\progressbar@tmpdim, 0.10cm);
+				
+				
+				% Left small rectangle
+				\fill[color=PrimaryColor!20] (0,0.10cm) rectangle (0.25\slidewidth,0.5cm);
+				
+				\fill[color=SecondaryColor!30] (0.25\slidewidth,0.10cm) rectangle (0.75\slidewidth,0.5cm);
+				
+				\fill[color=PrimaryColor!80] (0.75\slidewidth,0.10cm) rectangle (\slidewidth,0.5cm);
+				
+				% bottom info
+				% At left authors abbreviation
+				\node[anchor=south west] at(0,0cm) {\color{PrimaryColor}\footnotesize\vphantom{lp}\insertshortname};
+				% At the center 
+				\node[anchor=south] at(0.5\slidewidth,0cm) {\color{PrimaryColor}\footnotesize\vphantom{lp}\insertsection};
+				% if slide numbers are active
+				\ifnum \value{showSlideNumbers}>0\relax%
+					% if slide totals are active
+					\ifnum \value{showSlideTotal}>0\relax%
+						% draw both slide number and slide total
+						\node[anchor=south east] at(\slidewidth,0.05cm) {\color{BackgroundColor}\footnotesize \insertframenumber\ / \inserttotalframenumber};
+					\else
+						\node[anchor=south east] at(\slidewidth,0.05cm) {\color{BackgroundColor}\footnotesize\insertframenumber};
+					\fi
+				\fi
+			\else
+				% section title in the bottom left
+				\node[anchor=south] at(0.5\slidewidth,0cm) {\color{PrimaryColor}\footnotesize\vphantom{lp}\insertsection};
+				\node[anchor=south west] at(0,0.05cm) {\color{PrimaryColor}\footnotesize\vphantom{lp}\insertshortname};
+				% if we're showing slide numbers
+				\ifnum \value{showSlideNumbers}>0\relax%
+					% if slide totals are active
+					\ifnum \value{showSlideTotal}>0\relax%
+						% slide number and slide total
+						\node[anchor=south east] at(\slidewidth,0cm) {\color{BackgroundColor}\footnotesize \insertframenumber\ / \inserttotalframenumber};
+					\else
+						\node[anchor=south east] at(\slidewidth,0.05cm) {\color{BackgroundColor}\tiny\insertframenumber};
+					\fi
+				\fi
+			\fi
+		\fi
+	\end{tikzpicture}
+}
+\makeatother
+
+\AtBeginSection{\frame{\sectionpage}} % section pages
+
+\makeatletter
+\setbeamertemplate{section page}
+{
+    \begin{beamercolorbox}[wd=\paperwidth,ht=\paperheight,sep=0pt]{section page}
+        \begin{tikzpicture}
+            \useasboundingbox[fill=PrimaryColor] (0,0) rectangle (\slidewidth,\slideheight);
+            
+            \fill[BackgroundColor] (0, 0.5\slideheight-1cm) rectangle(\slidewidth, 0.5\paperheight+1cm);
+            
+            \node[text width=\paperwidth-2cm,align=center] at (0.5\slidewidth, 0.5\slideheight) 
+                 {\color{PrimaryColor}\huge\textbf{\insertsection}};
+        \end{tikzpicture}
+    \end{beamercolorbox}
+}
+\makeatother
+
+
+% -------- CONTINUED FRAMES TITLE STYLE --------
+% Make the roman numerals the same colour as the text
+\resetcounteronoverlays{beamerpauses}
+\setbeamertemplate{frametitle continuation}{
+  \setcounter{beamerpauses}{\insertcontinuationcount}
+  \color{BackgroundColor} % Or any other color you prefer
+  \Roman{beamerpauses}
+}
+
+% -------- BLOCK STYLES --------
+% For standard blocks
+\setbeamercolor{block title}{fg=white, bg=PrimaryColor}
+\setbeamercolor{block body}{bg=PrimaryColor!10}
+
+% For example blocks
+\setbeamercolor{block title example}{fg=white, bg=ExampleColor}
+\setbeamercolor{block body example}{bg=ExampleColor!25}
+
+% For alert blocks 
+\setbeamercolor{block title alerted}{fg=white, bg=AlertColor}
+\setbeamercolor{block body alerted}{bg=AlertColor!25}
+
+% -------- FORCE TEXT BELOW TITLE --------
+% Fixed a bug where \vfill put text over the title
+\addtobeamertemplate{frametitle}{}{\vspace{\titlebarheight}}
+
+% -------- SHOW CAPTION NUMBERS --------
+\newcommand{\setnumberedcaptions}[1]{%
+    \setbeamertemplate{caption}[numbered]
+}
+
+\setbeamercolor{caption name}{fg=PrimaryColor}
+% \setbeamertemplate{caption}[numbered]
+
+% -------- PROGRESS BAR AND PAGE NUMBERS COMMANDS --------
+\newcommand{\setProgressBarOff}{%
+    \setcounter{showProgressBar}{0}
+}
+
+\newcommand{\setFrameNumbersOff}{%
+    \setcounter{showSlideNumbers}{0}
+}
+
+% -------- FIX TEXT OVER PROGRESS BAR --------
+\addtobeamertemplate{footline}{}{%
+  \vspace{0.5cm}
+}
