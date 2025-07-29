@@ -1,6 +1,6 @@
 # Simple MIA
 
-Simple MIA is a minimalist unofficial beamer theme for [MIA (Applied Mathematics and Computer Science) Unit Research](https://mia-ps.inrae.fr/en) at University Paris-Saclay. It has minimal dependencies and can be used almost in the fly.
+Simple MIA is a minimalist unofficial beamer theme for [MIA (Applied Mathematics and Computer Science) Unit Research](https://mia-ps.inrae.fr/en) at University Paris-Saclay. It has minimal dependencies and can be used on the fly.
 
 This theme is based on [Lucid](https://github.com/harisont/lucid) theme.
 
